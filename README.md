@@ -1,3 +1,3 @@
 Haskell projects in this repo:
 
-<none>
+Calculator -- project with simple calculator example. Used if-else
