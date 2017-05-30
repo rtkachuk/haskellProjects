@@ -1,13 +1,13 @@
-generateString :: Int -> Int -> String
-generateString starAmount spaces =
+generateTreeString :: Int -> Int -> String
+generateTreeString starAmount spaceAmount =
   do
-    if spaces <= 0
-      then replicate spaces ' ' ++ replicate starAmount '*' ++ "\n" ++ replicate ((starAmount-1) `div` 2) ' ' ++ "*\n"
+    if spaceAmount <= 0
+      then replicate spaceAmount ' ' ++ replicate starAmount '*' ++ "\n" ++ replicate ((starAmount-1) `div` 2) ' ' ++ "*\n"
     else
-      do replicate spaces ' ' ++ replicate starAmount '*' ++ "\n" ++ generateString (starAmount+2) (spaces-1)
+      do replicate spaceAmount ' ' ++ replicate starAmount '*' ++ "\n" ++ generateTreeString (starAmount+2) (spaceAmount-1)
 
 printTree :: Int -> String
-printTree size = generateString 1 ((size-1) `div` 2)
+printTree treeSize = generateTreeString 1 ((treeSize-1) `div` 2)
 
 main = do
   putStrLn("Tree size: ")
