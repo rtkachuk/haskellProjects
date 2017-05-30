@@ -1,43 +1,39 @@
-printSpace 0 = return()
-printSpace n =
+printItems 0 mode= return()
+printItems itemsAmount mode =
   do
-    putStr(" ")
-    printSpace (n-1)
+    if mode == 0
+      then do putStr(" ")
+    else do putStr("*")
+    printItems (itemsAmount-1) mode
 
-printStars 0 = return()
-printStars n =
+printBranches 0 spaces stars = return()
+printBranches branches spaces stars =
   do
-    putStr("*")
-    printStars (n-1)
-
-printBranches 0 a b = return()
-printBranches n a b=
-  do
-    if n < 0
+    if branches < 0
       then return()
     else
       do
-        printSpace a
-        printStars b
+        printItems spaces 0
+        printItems stars 1
         putStrLn("")
-        printBranches (n-2) (a-1) (b+2)
+        printBranches (branches-2) (spaces-1) (stars+2)
 
 printTree 0 = return()
-printTree n =
+printTree branches =
   do
-    let spaces = (n-1)/2
-    printBranches n spaces 1
-    printSpace spaces
+    let spaces = (branches-1)/2
+    printBranches branches spaces 1
+    printItems spaces 0
     putStr("*")
 
 main = do
   putStrLn("Enter number: ")
-  number <- getLine
-  let x = (read number :: Int)
-  if mod x 2 == 0
+  treeHeightInString <- getLine
+  let treeHeightInInt = (read treeHeightInString :: Int)
+  if treeHeightInInt `mod` 2 == 0
     then putStrLn ("Error")
   else
     do
-      let value = (read number :: Double)
-      printTree (value)
+      let treeHeightInDouble = (read treeHeightInString :: Double)
+      printTree (treeHeightInDouble)
       putStrLn("")
