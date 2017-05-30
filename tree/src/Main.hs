@@ -18,8 +18,9 @@ printTree :: Int -> String
 printTree treeSize = 
   let 
     spacesAmountBeforeStars = ((treeSize-1) `div` 2)
+    starAmount = 1
   in
-    generateTreeString 1 spacesAmountBeforeStars
+    generateTreeString starAmount spacesAmountBeforeStars
 
 main = do
   putStrLn("Tree size: ")
