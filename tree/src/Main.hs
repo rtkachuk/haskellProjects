@@ -1,14 +1,12 @@
 generateTreeString :: Int -> Int -> String
-generateTreeString starAmount spaceAmount =
-  do
-    if spaceAmount <= 0
-      then 
+generateTreeString starAmount spaceAmount
+  | spaceAmount <= 0 =
         replicate spaceAmount ' ' ++ 
         replicate starAmount '*' ++ 
         "\n" ++ 
         replicate ((starAmount-1) `div` 2) ' ' ++ 
         "*\n"
-    else 
+  | otherwise =
       replicate spaceAmount ' ' ++ 
       replicate starAmount '*' ++ 
       "\n" ++ 
