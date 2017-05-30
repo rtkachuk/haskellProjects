@@ -15,7 +15,11 @@ generateTreeString starAmount spaceAmount =
       generateTreeString (starAmount+2) (spaceAmount-1)
 
 printTree :: Int -> String
-printTree treeSize = generateTreeString 1 ((treeSize-1) `div` 2)
+printTree treeSize = 
+  let 
+    spacesAmountBeforeStars = ((treeSize-1) `div` 2)
+  in
+    generateTreeString 1 spacesAmountBeforeStars
 
 main = do
   putStrLn("Tree size: ")
