@@ -1,39 +1,16 @@
-printItems 0 mode= return()
-printItems itemsAmount mode =
+generateString :: Int -> Int -> String
+generateString starAmount spaces =
   do
-    if mode == 0
-      then do putStr(" ")
-    else do putStr("*")
-    printItems (itemsAmount-1) mode
-
-printBranches 0 spaces stars = return()
-printBranches branches spaces stars =
-  do
-    if branches < 0
-      then return()
+    if spaces <= 0
+      then replicate spaces ' ' ++ replicate starAmount '*' ++ "\n" ++ replicate ((starAmount-1) `div` 2) ' ' ++ "*\n"
     else
-      do
-        printItems spaces 0
-        printItems stars 1
-        putStrLn("")
-        printBranches (branches-2) (spaces-1) (stars+2)
+      do replicate spaces ' ' ++ replicate starAmount '*' ++ "\n" ++ generateString (starAmount+2) (spaces-1)
 
-printTree 0 = return()
-printTree branches =
-  do
-    let spaces = (branches-1)/2
-    printBranches branches spaces 1
-    printItems spaces 0
-    putStr("*")
+printTree :: Int -> String
+printTree size = generateString 1 ((size-1) `div` 2)
 
 main = do
-  putStrLn("Enter number: ")
-  treeHeightInString <- getLine
-  let treeHeightInInt = (read treeHeightInString :: Int)
-  if treeHeightInInt `mod` 2 == 0
-    then putStrLn ("Error")
-  else
-    do
-      let treeHeightInDouble = (read treeHeightInString :: Double)
-      printTree (treeHeightInDouble)
-      putStrLn("")
+  putStrLn("Tree size: ")
+  treeSizeString <- getLine
+  let treeSizeInt = (read treeSizeString :: Int)
+  putStr(printTree (treeSizeInt))
