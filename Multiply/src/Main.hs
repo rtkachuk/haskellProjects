@@ -1,11 +1,12 @@
 recursiveUserInputProcess :: [Double] -> IO()
 recursiveUserInputProcess listOfValues = do
-  putStrLn("Enter value: ")
+  putStrLn ("Enter value: ")
   userInput <- getLine
   let valueToAdd = (read userInput :: Double)
   case valueToAdd of
-    0 -> putStrLn(show(listOfValues))
-    _ -> do valueToAdd : listOfValues;
-                 recursiveUserInputProcess listOfValues
+    0 -> print $ product listOfValues
+    _ -> do 
+      let newList = valueToAdd : listOfValues;
+      recursiveUserInputProcess newList
 
-main = recursiveUserInputProcess [1]
+main = recursiveUserInputProcess []
