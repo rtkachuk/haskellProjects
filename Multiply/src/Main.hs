@@ -5,8 +5,6 @@ recursiveUserInputProcess listOfValues = do
   let valueToAdd = (read userInput :: Double)
   case valueToAdd of
     0 -> print $ product listOfValues
-    _ -> do 
-      let newList = valueToAdd : listOfValues;
-      recursiveUserInputProcess newList
+    _ -> recursiveUserInputProcess (valueToAdd : listOfValues)
 
 main = recursiveUserInputProcess []
