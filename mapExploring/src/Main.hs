@@ -1,0 +1,31 @@
+showListRec :: [Int] -> IO()
+showListRec [] = putStrLn("")
+showListRec list = do
+  putStr(show(head list))
+  showListRec (tail list)
+
+main = do
+  let list1 = [1, 2, 3, 4]
+  print(map (show) list1)
+  putStrLn ("Head and tail recursive function: ")
+  showListRec list1
+  putStrLn("Here we will show all elements with prefix elem: ")
+  print (map (\n -> "elem: " ++ show(n)) list1)
+  putStrLn("Show lenght: ")
+  print (show(length(list1)))
+  putStrLn("Let's multiply every element by 3: ")
+  print(map (*3) list1)
+  putStrLn("This is second element: ")
+  print(list1 !! 1)
+  putStrLn("This is first 3 elements from list: ")
+  print (take 3 list1)
+  putStrLn("And... First 10 elements?: ")
+  print (take 10 list1)
+  putStrLn("First 10 elements from the infinity list [2, 4, 6, ..]: ")
+  print (take 10 [2, 4 ..])
+  putStrLn ("Add new element to list: ")
+  print (45 : list1)
+  putStrLn ("Let's zip list and [6, 3, 0, 15, 28]: ")
+  print (zip list1 [6, 3, 0, 15])
+  putStrLn ("Reversed list: ")
+  print (reverse list1)
