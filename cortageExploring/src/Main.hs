@@ -24,9 +24,9 @@ main = do
   let database = [("78.154.90.34", 3308, "Kevin"),
                   ("194.39.15.07", 8080, "Jake"),
                   ("<???>", 0, "Guy, who know Haskell")]
-  putStrLn("Let's see all members of our database: ")
-  print(map (showComputerInfo) database)
-  putStrLn("Ok, now, show the second user: ")
-  print(showComputerInfo (database!!1))
-  putStrLn("Good, now, let's find guy, who knows Haskell...")
-  print (showComputerInfo (searchInfoByName database "Guy, who know Haskell"))
+  putStrLn $ "Let's see all members of our database: "
+  print $ map (showComputerInfo) database
+  putStrLn $ "Ok, now, show the second user: "
+  print $ showComputerInfo $ database!!1
+  putStrLn $ "Good, now, let's find guy, who knows Haskell..."
+  print $ showComputerInfo $ searchInfoByName database "Guy, who know Haskell"
