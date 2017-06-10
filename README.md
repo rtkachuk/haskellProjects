@@ -8,3 +8,4 @@ Multiply -- read all values from user input while value is not 0. Then find surp
 mapExploring -- project, where I learned lists  
 cortageExploring -- project, where I learned cortages
 readFromFile -- read from file haskell program
+writeToFile -- write to file haskell program
