@@ -1,4 +1,5 @@
 import System.Directory
+import System.Console.ANSI
 
 type DirName = String
 
@@ -30,8 +31,9 @@ showError err = do
 
 waitInput :: IO()
 waitInput = do
-  putStr(">")
+  putStrLn("cmd?>")
   cmd <- getLine
+  clearScreen
   checkState 2 cmd
 
 processCommand :: String -> IO()
@@ -40,7 +42,11 @@ processCommand cmd = do
   case act of
     "ls" -> checkState 4 ""
     "cd" -> checkState 3 dest where dest = drop 3 cmd
+    "qu" -> checkState 5 ""
     otherwise -> checkState 0 "No such command"
+
+exit :: IO()
+exit = putStrLn ("Bye!")
 
 checkState :: Int -> String -> IO()
 checkState state cmd = do
@@ -50,9 +56,11 @@ checkState state cmd = do
     2 -> processCommand cmd
     3 -> changeDir cmd
     4 -> showContents
+    5 -> exit
     otherwise -> checkState 0 "Wrong action"
 
 main = do
+  setTitle "File manager"
   curr <- getHomeDirectory
   setCurrentDirectory curr
   checkState 1 ""
