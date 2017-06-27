@@ -4,26 +4,27 @@ import System.Directory
 import System.Console.ANSI
 import Control.Monad
 
-getFiles :: [FilePath] -> IO()
-getFiles contents = do
-  isFile <- doesFileExist (head contents)
+getFiles :: FilePath -> [FilePath] -> IO()
+getFiles path [] = return ()
+getFiles path contents = do
+  isFile <- doesDirectoryExist (head contents)
   if isFile == True then do
-    print (head contents)
-    getFiles (tail contents)
+    if ((path !! ((length path)-1)) == '/') then
+      searchPaths (path ++ (head contents))
+    else
+      searchPaths (path ++ "/" ++ (head contents))
+    getFiles path (tail contents)
   else do
-    getFiles (tail contents)
+    print (path ++ ": " ++ (head contents))
+    getFiles path (tail contents)
 
-getFiles [] = print ""
-
-searchPaths :: FilePath -> [FilePath] -> IO()
-searchPaths path list = do
+searchPaths :: FilePath -> IO()
+searchPaths path = do
   contents <- listDirectory path
-  let files = []
-  getFiles contents
---  map (print) (files)
+  getFiles path contents
   
 main = do
   path <- getCurrentDirectory
   print ("Current path: " ++ path)
   print ("==============================")
-  searchPaths path []
+  searchPaths path
