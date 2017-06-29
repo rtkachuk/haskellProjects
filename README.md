@@ -11,4 +11,5 @@ readFromFile -- read from file haskell program
 writeToFile -- write to file haskell program  
 simpleDataStore -- program, that use zip  
 dirsExploring -- simple file manager  
-musicWorker -- simple program with recursive file searching
+musicWorker -- simple program with recursive file searching  
+databaseConnect -- simple program, which connects to database  
