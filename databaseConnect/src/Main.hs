@@ -14,6 +14,7 @@ import Database.MySQL.Simple.Types
 
 type SqlQuery a = Connection -> IO a
 type SqlCommand = Connection -> IO Int64
+type QueryCmd = String
 
 sqlQuery :: (QueryParams q, QueryResults r) => Query -> q -> Connection -> IO [r]
 sqlQuery q vs conn = query conn q vs
@@ -58,7 +59,37 @@ select = sqlQuery_ "select `title`, `section`, `link`, `owner` from items"
 user :: (String, String, String, String) -> Item
 user (newTitle, newSection, newLink, newOwner) = Item { itemTitle = newTitle, itemSection = newSection, itemLink = newLink, itemOwner = newOwner }
 
+data CurrState = Configuring | Querying | Exitting
+
+--mainFunction :: CurrState -> QueryCmd -> IO()
+--mainFunction state cmd = do
+--  case state of
+--    Configuring -> 
+
+databaseConfigure :: IO ConnectInfo
+databaseConfigure = do
+  putStrLn "Enter address: "
+  addr <- getLine
+  putStrLn "Enter user: "
+  user <- getLine
+  putStrLn "Enter password: "
+  password <- getLine
+  putStrLn "Enter database: "
+  dbName <- getLine
+  return ConnectInfo { connectHost = addr,
+                            connectPort = 6783,
+                            connectUser = user,
+                            connectPassword = password,
+                            connectDatabase = "files",
+                            connectOptions = [],
+                            connectPath = "",
+                            connectSSL = Nothing }
+  
+
 main = do
-  conn <- connect connectInfo
+  settings <- databaseConfigure
+  conn <- connect settings
+  putStrLn "OK!"
+  putStrLn "Enter query: "
   result <- select conn
   putStrLn $ show result
