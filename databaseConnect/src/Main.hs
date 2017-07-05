@@ -14,34 +14,9 @@ import Database.MySQL.Simple.Types
 
 type SqlQuery a = Connection -> IO a
 type SqlCommand = Connection -> IO Int64
-type QueryCmd = String
-
-sqlQuery :: (QueryParams q, QueryResults r) => Query -> q -> Connection -> IO [r]
-sqlQuery q vs conn = query conn q vs
 
 sqlQuery_ :: QueryResults r => Query -> Connection -> IO [r]
 sqlQuery_ q conn = query_ conn q
-
-sqlCmd :: QueryParams q => Query -> q -> Connection -> IO Int64
-sqlCmd q vs conn = execute conn q vs
-
-sqlCmd_ :: Query -> Connection -> IO Int64
-sqlCmd_ q conn = execute_ conn q
-
-(>>>) :: SqlQuery a -> SqlQuery b -> SqlQuery b
-(>>>) q1 q2 conn = do
-  q1 conn
-  q2 conn
-
-connectInfo :: ConnectInfo
-connectInfo = ConnectInfo { connectHost = "192.168.0.107",
-                            connectPort = 6783,
-                            connectUser = "site",
-                            connectPassword = "12341234",
-                            connectDatabase = "files",
-                            connectOptions = [],
-                            connectPath = "",
-                            connectSSL = Nothing }
 
 data Item = Item { itemTitle :: String, itemSection :: String, itemLink :: String, itemOwner :: String } deriving Show
 
@@ -53,8 +28,8 @@ instance QueryResults Item where
           d = convert fd vd
   convertResults fs vs = convertError fs vs 2
 
-select :: SqlQuery [Item]
-select = sqlQuery_ "select `title`, `section`, `link`, `owner` from items"
+select :: Query -> SqlQuery [Item]
+select qr = sqlQuery_ qr
 
 user :: (String, String, String, String) -> Item
 user (newTitle, newSection, newLink, newOwner) = Item { itemTitle = newTitle, itemSection = newSection, itemLink = newLink, itemOwner = newOwner }
@@ -91,5 +66,5 @@ main = do
   conn <- connect settings
   putStrLn "OK!"
   putStrLn "Enter query: "
-  result <- select conn
+  result <- select "select `title`, `section`, `link`, `owner` from items" conn
   putStrLn $ show result
