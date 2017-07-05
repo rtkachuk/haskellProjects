@@ -33,28 +33,30 @@ sqlCmd_ q conn = execute_ conn q
   q2 conn
 
 connectInfo :: ConnectInfo
-connectInfo = ConnectInfo { connectHost = "localhost",
-                            connectPort = 3306,
-                            connectUser = "adminUser",
+connectInfo = ConnectInfo { connectHost = "192.168.0.107",
+                            connectPort = 6783,
+                            connectUser = "site",
                             connectPassword = "12341234",
-                            connectDatabase = "test",
+                            connectDatabase = "files",
                             connectOptions = [],
                             connectPath = "",
                             connectSSL = Nothing }
 
-data Item = Item { datId :: Int, datName :: String } deriving Show
+data Item = Item { itemTitle :: String, itemSection :: String, itemLink :: String, itemOwner :: String } deriving Show
 
 instance QueryResults Item where
-  convertResults [fa, fb] [va, vb] = Item { datId = a, datName = b }
+  convertResults [fa, fb, fc, fd] [va, vb, vc, vd] = Item { itemTitle = a, itemSection = b, itemLink = c, itemOwner = d }
     where a = convert fa va
           b = convert fb vb
+          c = convert fc vc
+          d = convert fd vd
   convertResults fs vs = convertError fs vs 2
 
 select :: SqlQuery [Item]
-select = sqlQuery_ "select * from testing"
+select = sqlQuery_ "select `title`, `section`, `link`, `owner` from items"
 
-user :: (Int, String) -> Item
-user (newId, newName) = Item { datId = newId, datName = newName }
+user :: (String, String, String, String) -> Item
+user (newTitle, newSection, newLink, newOwner) = Item { itemTitle = newTitle, itemSection = newSection, itemLink = newLink, itemOwner = newOwner }
 
 main = do
   conn <- connect connectInfo
