@@ -5,6 +5,7 @@
 --
 
 import Data.Int
+import Data.List
 import Database.MySQL.Simple
 import Database.MySQL.Simple.Param
 import Database.MySQL.Simple.QueryParams
@@ -41,6 +42,9 @@ data CurrState = Configuring | Querying | Exitting
 --  case state of
 --    Configuring -> 
 
+showItem :: Item -> String
+showItem (Item {itemTitle = t, itemSection = s, itemLink = l, itemOwner = o}) = t ++ " " ++ s ++ " " ++ l ++ " " ++ o
+
 databaseConfigure :: IO ConnectInfo
 databaseConfigure = do
   putStrLn "Enter address: "
@@ -52,10 +56,10 @@ databaseConfigure = do
   putStrLn "Enter database: "
   dbName <- getLine
   return ConnectInfo { connectHost = addr,
-                            connectPort = 6783,
+                            connectPort = 3306,
                             connectUser = user,
                             connectPassword = password,
-                            connectDatabase = "files",
+                            connectDatabase = dbName,
                             connectOptions = [],
                             connectPath = "",
                             connectSSL = Nothing }
@@ -67,4 +71,7 @@ main = do
   putStrLn "OK!"
   putStrLn "Enter query: "
   result <- select "select `title`, `section`, `link`, `owner` from items" conn
-  putStrLn $ show result
+--  putStrLn $ show result
+  let resultList = map (\n -> showItem n) result
+  putStrLn "===================================="
+  putStrLn $ intercalate "\n" resultList
