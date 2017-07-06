@@ -1,9 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- Connect to localhost on port 3306 with user "adminUser", password "12341234", to database
--- "test". Database must contain "testing" table with two columns: id (Int) and name (Text)
---
-
 import Data.Int
 import Data.List
 import Database.MySQL.Simple
@@ -33,17 +29,16 @@ select :: Query -> SqlQuery [Item]
 select qr = sqlQuery_ qr
 
 user :: (String, String, String, String) -> Item
-user (newTitle, newSection, newLink, newOwner) = Item { itemTitle = newTitle, itemSection = newSection, itemLink = newLink, itemOwner = newOwner }
-
-data CurrState = Configuring | Querying | Exitting
-
---mainFunction :: CurrState -> QueryCmd -> IO()
---mainFunction state cmd = do
---  case state of
---    Configuring -> 
+user (newTitle, newSection, newLink, newOwner) = Item { itemTitle = newTitle, 
+                                                        itemSection = newSection, 
+                                                        itemLink = newLink, 
+                                                        itemOwner = newOwner }
 
 showItem :: Item -> String
-showItem (Item {itemTitle = t, itemSection = s, itemLink = l, itemOwner = o}) = t ++ " " ++ s ++ " " ++ l ++ " " ++ o
+showItem (Item {itemTitle = t, 
+          itemSection = s, 
+          itemLink = l, 
+          itemOwner = o}) = t ++ " " ++ s ++ " " ++ l ++ " " ++ o
 
 databaseConfigure :: IO ConnectInfo
 databaseConfigure = do
@@ -63,15 +58,37 @@ databaseConfigure = do
                             connectOptions = [],
                             connectPath = "",
                             connectSSL = Nothing }
-  
+
+addRecord :: IO()
+addRecord = putStrLn ("Add record function")
+
+selectAllRecords :: Connection -> IO()
+selectAllRecords conn = do
+  putStrLn "OK!"
+  putStrLn "Enter query: "
+  result <- select "select `title`, `section`, `link`, `owner` from items" conn
+  let resultList = map (\n -> showItem n) result
+  putStrLn "===================================="
+  putStrLn $ intercalate "\n" resultList
+
+selectionMenu :: Connection -> IO()
+selectionMenu settings = do
+  putStrLn ("Database connector: ")
+  putStrLn ("===========================")
+  putStrLn ("Select action: ")
+  putStrLn ("1 - Add record")
+  putStrLn ("2 - Select all records")
+  sel <- getLine
+  case sel of
+    "1" -> do
+      addRecord
+      selectionMenu settings
+    "2" -> do
+      selectAllRecords settings
+      selectionMenu settings
+    _ -> putStrLn ("End")
 
 main = do
   settings <- databaseConfigure
   conn <- connect settings
-  putStrLn "OK!"
-  putStrLn "Enter query: "
-  result <- select "select `title`, `section`, `link`, `owner` from items" conn
---  putStrLn $ show result
-  let resultList = map (\n -> showItem n) result
-  putStrLn "===================================="
-  putStrLn $ intercalate "\n" resultList
+  selectionMenu conn
