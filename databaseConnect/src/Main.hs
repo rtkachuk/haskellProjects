@@ -71,7 +71,7 @@ addRecord settings = do
   putStrLn("Enter owner: ")
   owner <- getLine
   result <- execute settings "INSERT INTO items VALUES (?,?,?,?)" [title, section, link, owner]
-  putStrLn (show $ result)
+  putStrLn ((show $ result) ++ " affected")
 
 searchRecord :: Connection -> IO()
 searchRecord settings = do
@@ -79,25 +79,33 @@ searchRecord settings = do
   search <- getLine
   result <- query settings "select `title`, `section`, `link`, `owner` from items WHERE `title`=?" [search]
   let resultList = map (\n -> showItem n) result
-  putStrLn "===================================="
+  putStrLn "====================================\n"
   putStrLn $ intercalate "\n" resultList
+
+dropRecord :: Connection -> IO()
+dropRecord settings = do
+  putStrLn ("Set mask: ")
+  mask <- getLine
+  result <- execute settings "DELETE FROM items WHERE `title`=?" [mask]
+  putStrLn ((show $ result) ++ " affected")
 
 selectAllRecords :: Connection -> IO()
 selectAllRecords conn = do
   putStrLn "\nData:"
   result <- query_ conn "select `title`, `section`, `link`, `owner` from items"
   let resultList = map (\n -> showItem n) result
-  putStrLn "===================================="
+  putStrLn "====================================\n"
   putStrLn $ intercalate "\n" resultList
 
 selectionMenu :: Connection -> IO()
 selectionMenu settings = do
-  putStrLn ("Database connector: ")
+  putStrLn ("\nDatabase connector: ")
   putStrLn "===================================="
   putStrLn ("Select action: ")
   putStrLn ("1 - Add record")
   putStrLn ("2 - Select all records")
   putStrLn ("3 - Search record")
+  putStrLn ("4 - Drop record")
   sel <- getLine
   case sel of
     "1" -> do
@@ -108,6 +116,9 @@ selectionMenu settings = do
       selectionMenu settings
     "3" -> do
       searchRecord settings
+      selectionMenu settings
+    "4" -> do
+      dropRecord settings
       selectionMenu settings
     _ -> putStrLn ("End")
 
