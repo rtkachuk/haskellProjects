@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Data.Int
+import Data.Char
 import Data.List
 import Database.MySQL.Simple
 import Database.MySQL.Simple.Param
@@ -59,8 +60,18 @@ databaseConfigure = do
                             connectPath = "",
                             connectSSL = Nothing }
 
-addRecord :: IO()
-addRecord = putStrLn ("Add record function")
+addRecord :: Connection -> IO()
+addRecord settings = do
+  putStrLn("Enter title: ")
+  title <- getLine
+  putStrLn("Enter section: ")
+  section <- getLine
+  putStrLn("Enter link: ")
+  link <- getLine
+  putStrLn("Enter owner: ")
+  owner <- getLine
+  result <- execute settings "INSERT INTO items VALUES (?,?,?,?)" [title, section, link, owner]
+  putStrLn (show $ result)
 
 selectAllRecords :: Connection -> IO()
 selectAllRecords conn = do
@@ -81,7 +92,7 @@ selectionMenu settings = do
   sel <- getLine
   case sel of
     "1" -> do
-      addRecord
+      addRecord settings
       selectionMenu settings
     "2" -> do
       selectAllRecords settings
