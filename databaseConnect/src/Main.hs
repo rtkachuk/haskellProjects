@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiWayIf #-}
 
 import Data.Int
 import Data.Char
@@ -9,6 +10,8 @@ import Database.MySQL.Simple.QueryParams
 import Database.MySQL.Simple.QueryResults
 import Database.MySQL.Simple.Result
 import Database.MySQL.Simple.Types
+import System.IO
+import System.Directory
 
 type SqlQuery a = Connection -> IO a
 type SqlCommand = Connection -> IO Int64
@@ -43,13 +46,13 @@ showItem (Item {itemTitle = t,
 
 databaseConfigure :: IO ConnectInfo
 databaseConfigure = do
-  putStrLn "Enter address: "
+  putStr "Enter address: "
   addr <- getLine
-  putStrLn "Enter user: "
+  putStr "Enter user: "
   user <- getLine
-  putStrLn "Enter password: "
+  putStr "Enter password: "
   password <- getLine
-  putStrLn "Enter database: "
+  putStr "Enter database: "
   dbName <- getLine
   return ConnectInfo { connectHost = addr,
                             connectPort = 3306,
@@ -59,16 +62,44 @@ databaseConfigure = do
                             connectOptions = [],
                             connectPath = "",
                             connectSSL = Nothing }
-
+                            
+getSettingsFromFile :: IO ConnectInfo
+getSettingsFromFile = do
+  let settingsFile = "settingsFile.txt"
+  exists <- doesFileExist settingsFile
+  
+  if exists == True then do
+  
+    handle <- openFile settingsFile ReadMode
+    isOpened <- hIsOpen handle
+    hClose handle
+    if | isOpened == False -> do
+                              putStrLn ("Error opening File")
+                              databaseConfigure
+       | otherwise -> do
+                      dat <- readFile settingsFile
+                      let fromFile = lines dat
+                      return ConnectInfo { connectHost = fromFile !! 0,
+                              connectPort = 3306,
+                              connectUser = fromFile !! 1,
+                              connectPassword = fromFile !! 2,
+                              connectDatabase = fromFile !! 3,
+                              connectOptions = [],
+                              connectPath = "",
+                              connectSSL = Nothing }
+  else do
+    putStrLn ("File not found")
+    databaseConfigure
+    
 addRecord :: Connection -> IO()
 addRecord settings = do
-  putStrLn("Enter title: ")
+  putStr "Enter title: "
   title <- getLine
-  putStrLn("Enter section: ")
+  putStr "Enter section: "
   section <- getLine
-  putStrLn("Enter link: ")
+  putStr "Enter link: "
   link <- getLine
-  putStrLn("Enter owner: ")
+  putStr "Enter owner: "
   owner <- getLine
   result <- execute settings "INSERT INTO items VALUES (?,?,?,?)" [title, section, link, owner]
   putStrLn ((show $ result) ++ " affected")
@@ -123,6 +154,14 @@ selectionMenu settings = do
     _ -> putStrLn ("End")
 
 main = do
-  settings <- databaseConfigure
-  conn <- connect settings
-  selectionMenu conn
+  hSetBuffering stdout NoBuffering
+  putStr "Configure database connection from file?[Y/N]: "
+  selection <- getLine
+  if | selection == "Y" -> do
+                           settings <- getSettingsFromFile
+                           conn <- connect settings
+                           selectionMenu conn
+     | otherwise -> do
+                    settings <- databaseConfigure
+                    conn <- connect settings
+                    selectionMenu conn
