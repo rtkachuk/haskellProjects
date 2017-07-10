@@ -13,13 +13,22 @@ import Database.MySQL.Simple.Types
 import System.IO
 import System.Directory
 
+-- Create some useful datatypes based on datatypes from module Database.MySQL
+
 type SqlQuery a = Connection -> IO a
 type SqlCommand = Connection -> IO Int64
 
 sqlQuery_ :: QueryResults r => Query -> Connection -> IO [r]
 sqlQuery_ q conn = query_ conn q
 
-data Item = Item { itemTitle :: String, itemSection :: String, itemLink :: String, itemOwner :: String } deriving Show
+-- Our row type. This type will carry data from database
+
+data Item = Item { itemTitle :: String, 
+                   itemSection :: String, 
+                   itemLink :: String, 
+                   itemOwner :: String } deriving Show
+
+-- Create instance which will represent Item as QueryResult
 
 instance QueryResults Item where
   convertResults [fa, fb, fc, fd] [va, vb, vc, vd] = Item { itemTitle = a, itemSection = b, itemLink = c, itemOwner = d }
@@ -32,17 +41,17 @@ instance QueryResults Item where
 select :: Query -> SqlQuery [Item]
 select qr = sqlQuery_ qr
 
-user :: (String, String, String, String) -> Item
-user (newTitle, newSection, newLink, newOwner) = Item { itemTitle = newTitle, 
-                                                        itemSection = newSection, 
-                                                        itemLink = newLink, 
-                                                        itemOwner = newOwner }
+-- Show item as normal people
 
 showItem :: Item -> String
 showItem (Item {itemTitle = t, 
           itemSection = s, 
           itemLink = l, 
           itemOwner = o}) = t ++ " " ++ s ++ " " ++ l ++ " " ++ o
+
+-- This part of code will ask user to enter database connection
+-- configuration data. It will be executed only in case of reject
+-- reading from file
 
 databaseConfigure :: IO ConnectInfo
 databaseConfigure = do
@@ -62,7 +71,9 @@ databaseConfigure = do
                             connectOptions = [],
                             connectPath = "",
                             connectSSL = Nothing }
-                            
+                    
+-- Here we will read data from file
+                                            
 getSettingsFromFile :: IO ConnectInfo
 getSettingsFromFile = do
   let settingsFile = "settingsFile.txt"
@@ -90,7 +101,10 @@ getSettingsFromFile = do
   else do
     putStrLn ("File not found")
     databaseConfigure
-    
+
+-- This part of code reading data from user input, creates row, and inserts it
+-- to database
+            
 addRecord :: Connection -> IO()
 addRecord settings = do
   putStr "Enter title: "
@@ -104,6 +118,8 @@ addRecord settings = do
   result <- execute settings "INSERT INTO items VALUES (?,?,?,?)" [title, section, link, owner]
   putStrLn ((show $ result) ++ " affected")
 
+-- Here we will search data by title
+
 searchRecord :: Connection -> IO()
 searchRecord settings = do
   putStrLn ("Enter search setting: ")
@@ -113,12 +129,16 @@ searchRecord settings = do
   putStrLn "====================================\n"
   putStrLn $ intercalate "\n" resultList
 
+-- Here we will drop record from database
+
 dropRecord :: Connection -> IO()
 dropRecord settings = do
   putStrLn ("Set mask: ")
   mask <- getLine
   result <- execute settings "DELETE FROM items WHERE `title`=?" [mask]
   putStrLn ((show $ result) ++ " affected")
+
+-- Here we will show all records
 
 selectAllRecords :: Connection -> IO()
 selectAllRecords conn = do
@@ -127,6 +147,8 @@ selectAllRecords conn = do
   let resultList = map (\n -> showItem n) result
   putStrLn "====================================\n"
   putStrLn $ intercalate "\n" resultList
+
+-- This part of code kind of recursive function
 
 selectionMenu :: Connection -> IO()
 selectionMenu settings = do
@@ -137,6 +159,7 @@ selectionMenu settings = do
   putStrLn ("2 - Select all records")
   putStrLn ("3 - Search record")
   putStrLn ("4 - Drop record")
+  putStrLn ("Anything else to exit")
   sel <- getLine
   case sel of
     "1" -> do
