@@ -23,7 +23,8 @@ sqlQuery_ q conn = query_ conn q
 
 -- Our row type. This type will carry data from database
 
-data Item = Item { itemTitle :: String, 
+data Item = Item { itemId :: Int,
+                   itemTitle :: String, 
                    itemSection :: String, 
                    itemLink :: String, 
                    itemOwner :: String } deriving Show
@@ -31,11 +32,12 @@ data Item = Item { itemTitle :: String,
 -- Create instance which will represent Item as QueryResult
 
 instance QueryResults Item where
-  convertResults [fa, fb, fc, fd] [va, vb, vc, vd] = Item { itemTitle = a, itemSection = b, itemLink = c, itemOwner = d }
+  convertResults [fa, fb, fc, fd, fe] [va, vb, vc, vd, ve] = Item { itemId = a, itemTitle = b, itemSection = c, itemLink = d, itemOwner = e }
     where a = convert fa va
           b = convert fb vb
           c = convert fc vc
           d = convert fd vd
+          e = convert fe ve
   convertResults fs vs = convertError fs vs 2
 
 select :: Query -> SqlQuery [Item]
@@ -44,10 +46,11 @@ select qr = sqlQuery_ qr
 -- Show item as normal people
 
 showItem :: Item -> String
-showItem (Item {itemTitle = t, 
-          itemSection = s, 
-          itemLink = l, 
-          itemOwner = o}) = t ++ " " ++ s ++ " " ++ l ++ " " ++ o
+showItem (Item { itemId = i,
+                 itemTitle = t, 
+                 itemSection = s, 
+                 itemLink = l, 
+                 itemOwner = o}) = show (i) ++ " " ++ t ++ " " ++ s ++ " " ++ l ++ " " ++ o
 
 -- This part of code will ask user to enter database connection
 -- configuration data. It will be executed only in case of reject
@@ -64,13 +67,13 @@ databaseConfigure = do
   putStr "Enter database: "
   dbName <- getLine
   return ConnectInfo { connectHost = addr,
-                            connectPort = 3306,
-                            connectUser = user,
-                            connectPassword = password,
-                            connectDatabase = dbName,
-                            connectOptions = [],
-                            connectPath = "",
-                            connectSSL = Nothing }
+                       connectPort = 3306,
+                       connectUser = user,
+                       connectPassword = password,
+                       connectDatabase = dbName,
+                       connectOptions = [],
+                       connectPath = "",
+                       connectSSL = Nothing }
                     
 -- Here we will read data from file
                                             
@@ -91,13 +94,13 @@ getSettingsFromFile = do
                       dat <- readFile settingsFile
                       let fromFile = lines dat
                       return ConnectInfo { connectHost = fromFile !! 0,
-                              connectPort = 3306,
-                              connectUser = fromFile !! 1,
-                              connectPassword = fromFile !! 2,
-                              connectDatabase = fromFile !! 3,
-                              connectOptions = [],
-                              connectPath = "",
-                              connectSSL = Nothing }
+                                           connectPort = 3306,
+                                           connectUser = fromFile !! 1,
+                                           connectPassword = fromFile !! 2,
+                                           connectDatabase = fromFile !! 3,
+                                           connectOptions = [],
+                                           connectPath = "",
+                                           connectSSL = Nothing }
   else do
     putStrLn ("File not found")
     databaseConfigure
@@ -115,7 +118,7 @@ addRecord settings = do
   link <- getLine
   putStr "Enter owner: "
   owner <- getLine
-  result <- execute settings "INSERT INTO items VALUES (?,?,?,?)" [title, section, link, owner]
+  result <- execute settings "INSERT INTO items (title, section, link, owner) VALUES (?,?,?,?)" [title, section, link, owner]
   putStrLn ((show $ result) ++ " affected")
 
 -- Here we will search data by title
@@ -124,7 +127,7 @@ searchRecord :: Connection -> IO()
 searchRecord settings = do
   putStrLn ("Enter search setting: ")
   search <- getLine
-  result <- query settings "select `title`, `section`, `link`, `owner` from items WHERE `title` LIKE ? OR `section` LIKE ? OR `link` LIKE ? OR `owner` LIKE ?" [search, search, search, search]
+  result <- query settings "select `title`, `section`, `link`, `owner` from items WHERE `id` LIKE ? OR `title` LIKE ? OR `section` LIKE ? OR `link` LIKE ? OR `owner` LIKE ?" [search, search, search, search, search]
   let resultList = map (\n -> showItem n) result
   putStrLn "====================================\n"
   putStrLn $ intercalate "\n" resultList
@@ -133,9 +136,9 @@ searchRecord settings = do
 
 dropRecord :: Connection -> IO()
 dropRecord settings = do
-  putStrLn ("Set mask: ")
+  putStrLn ("Set id: ")
   mask <- getLine
-  result <- execute settings "DELETE FROM items WHERE `title`=?" [mask]
+  result <- execute settings "DELETE FROM items WHERE `id`=?" [mask]
   putStrLn ((show $ result) ++ " affected")
 
 -- Here we will show all records
@@ -143,7 +146,7 @@ dropRecord settings = do
 selectAllRecords :: Connection -> IO()
 selectAllRecords conn = do
   putStrLn "\nData:"
-  result <- query_ conn "select `title`, `section`, `link`, `owner` from items"
+  result <- query_ conn "select `id`, `title`, `section`, `link`, `owner` from items"
   let resultList = map (\n -> showItem n) result
   putStrLn "====================================\n"
   putStrLn $ intercalate "\n" resultList
