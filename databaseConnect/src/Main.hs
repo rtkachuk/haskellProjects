@@ -124,7 +124,7 @@ searchRecord :: Connection -> IO()
 searchRecord settings = do
   putStrLn ("Enter search setting: ")
   search <- getLine
-  result <- query settings "select `title`, `section`, `link`, `owner` from items WHERE `title`=?" [search]
+  result <- query settings "select `title`, `section`, `link`, `owner` from items WHERE `title` LIKE ? OR `section` LIKE ? OR `link` LIKE ? OR `owner` LIKE ?" [search, search, search, search]
   let resultList = map (\n -> showItem n) result
   putStrLn "====================================\n"
   putStrLn $ intercalate "\n" resultList
