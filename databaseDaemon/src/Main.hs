@@ -26,5 +26,6 @@ main = do
   conn <- connect settings
   
   internalFiles <- inspectDir programPath
-  result <- checkDatabaseRecord internalFiles conn
-  print result
+  answers <- checkDatabaseRecord internalFiles conn
+  let affected = foldl (\x y -> x + y) 0 answers
+  print affected
