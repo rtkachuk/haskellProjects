@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiWayIf #-}
 
-module ServakDatabase where
+module DatabaseFunctions where
 
 import Data.Int
 import Data.Char
@@ -18,6 +18,9 @@ import System.Exit
 
 type SqlQuery a = Connection -> IO a
 type SqlCommand = Connection -> IO Int64
+
+sqlCmd :: QueryParams q => Query -> q -> Connection -> IO Int64
+sqlCmd q vs conn = execute conn q vs
 
 sqlQuery_ :: QueryResults r => Query -> Connection -> IO [r]
 sqlQuery_ q conn = query_ conn q
@@ -42,8 +45,12 @@ instance QueryResults Item where
 select :: Query -> SqlQuery [Item]
 select qr = sqlQuery_ qr
 
-fromInt64ToInt :: Int64 -> Int
-fromInt64ToInt = fromIntegral
+convertToItem :: (Int, String, String, String, String) -> Item
+convertToItem (id, title, section, link, owner) = Item { itemId = id,
+                                                          itemTitle = title,
+                                                          itemSection = section,
+                                                          itemLink = link,
+                                                          itemOwner = owner }
 
 getSettingsFromFile :: String -> IO ConnectInfo
 getSettingsFromFile path = do
@@ -69,14 +76,8 @@ getSettingsFromFile path = do
                                            connectSSL = Nothing }
   else exitFailure
 
-addRecord :: Item -> Connection -> IO Int64
-addRecord (Item { itemId = id,
-                 itemTitle = title, 
-                 itemSection = section, 
-                 itemLink = link, 
-                 itemOwner = owner}) settings = do
-  result <- execute settings "INSERT INTO items (title, section, link, owner) VALUES (?,?,?,?)" [title, section, link, owner]
-  return result
+addRecord :: String -> String -> String -> String -> SqlCommand
+addRecord title section link owner = sqlCmd "INSERT INTO items (title, section, link, owner) VALUES (?,?,?,?)" (title, section, link, owner)
   
 getId :: Item -> Int
 getId (Item { itemId = i,

@@ -18,7 +18,7 @@ cabal-version:       >=1.10
 
 executable databaseDaemon
   main-is:             Main.hs
-  other-modules:       ServakDatabase, FileWorker
+  other-modules:       DatabaseFunctions, DatabaseWorker, FileWorker
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9, mysql-simple, directory
   hs-source-dirs:      src
