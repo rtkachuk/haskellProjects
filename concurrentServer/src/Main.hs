@@ -5,13 +5,15 @@ import Network
 import Control.Concurrent
 import System.IO
 import Data.List
-
+import Data.String.Utils
 import Control.Monad
 
 logFile = "/home/fabler/log.txt"
+tempFile = "/home/fabler/temp.txt"
 
 main :: IO ()
 main = withSocketsDo $ do
+       appendFile logFile ""
        socket <- listenOn $ PortNumber 5002
        forever $ loop socket
 
@@ -23,11 +25,13 @@ loop sock = do
 workWithSocket h = do
   message <- hGetLine $ h
 
+  dataFromFile <- readFile logFile
+
   if | "GET " `isInfixOf` message -> do
-          dataFromFile <- readFile logFile
           hPutStr h $ unlines $ seekData (lines dataFromFile) (drop 4 message) []
           hFlush h
-     | otherwise -> writeToFile $ message ++ "\n"
+     | "PUT " `isInfixOf` message  -> writeToFile dataFromFile $ (drop 4 message) ++ "\n"
+     | otherwise -> hPutStr h "?command" >> hFlush h
 
   check <- hIsEOF h
 
@@ -36,8 +40,21 @@ workWithSocket h = do
   else
     workWithSocket h
 
-writeToFile str = do
-  appendFile logFile str
+writeToFile :: String -> String -> IO()
+writeToFile txt str = do
+  let index = case findIndex (==':') str of
+                Just a -> a
+                otherwise -> 0
+  let key = take index str
+  let dat = drop (index+1) str
+
+  processFile key dat txt
+
+processFile key dat txt = do
+  writeFile tempFile txt
+  buff <- readFile tempFile
+  writeFile logFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+  appendFile logFile $ key ++ ":" ++ dat
 
 seekData :: [String] -> String -> [String] -> [String]
 seekData [] key result = result
