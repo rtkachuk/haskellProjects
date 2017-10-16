@@ -12,36 +12,36 @@ logFile = "/home/fabler/log.txt"
 
 main :: IO ()
 main = withSocketsDo $ do
-       f <- openFile logFile AppendMode
-       hSetBuffering f LineBuffering
-       mVar <- newEmptyMVar
-       putMVar mVar f
        socket <- listenOn $ PortNumber 5002
-       forever $ loop socket mVar
+       forever $ loop socket
 
-loop sock m = do
+loop sock = do
   (h,hn,pn) <- accept sock
   hSetBuffering h LineBuffering
-  forkIO $ workWithSocket h m
+  forkIO $ workWithSocket h
 
-workWithSocket h m = do
+workWithSocket h = do
   message <- hGetLine $ h
 
-  let var = "G" `isInfixOf` message
---  if | "G" `isInfixOf` message -> workWithMVar m "GET REQUEST"
---     | otherwise -> workWithMVar m message
+  if | "GET " `isInfixOf` message -> do
+          dataFromFile <- readFile logFile
+          hPutStr h $ unlines $ seekData (lines dataFromFile) (drop 4 message) []
+          hFlush h
+     | otherwise -> writeToFile $ message ++ "\n"
 
-  workWithMVar m message
-  workWithMVar m $ show var
   check <- hIsEOF h
 
   if check then
     hClose h
   else
-    workWithSocket h m
+    workWithSocket h
 
-workWithMVar m str = do
-  f <- takeMVar m
-  hPutStr f str
-  hFlush f
-  putMVar m f
+writeToFile str = do
+  appendFile logFile str
+
+seekData :: [String] -> String -> [String] -> [String]
+seekData [] key result = result
+seekData str key result = do
+  let first = (head str)
+  if | key `isInfixOf` first -> seekData (tail str) key (first : result)
+     | otherwise -> seekData (tail str) key result
