@@ -31,7 +31,11 @@ workWithSocket h = do
           let result =  unlines $ seekData (lines dataFromFile) (drop 4 message) []
           hPutStrLn h $ returnJson $ findData $ result
           hFlush h
-     | "PUT " `isInfixOf` message  -> processEntry dataFromFile $ (drop 4 message) ++ "\n"
+     | "PUT " `isInfixOf` message  -> do
+          ans <- processEntry dataFromFile $ (drop 4 message) ++ "\n"
+          hPutStrLn h ans
+          hFlush h
+     | "DELETE " `isInfixOf` message -> deleteEntry dataFromFile $ (drop 7 message)
      | otherwise -> hPutStrLn h "?command" >> hFlush h
 
   check <- hIsEOF h
@@ -40,6 +44,11 @@ workWithSocket h = do
     hClose h
   else
     workWithSocket h
+
+deleteEntry txt key = do
+  writeFile tempFile txt
+  buff <- readFile tempFile
+  writeFile logFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
 
 returnJson :: String -> String
 returnJson str = "{ data: \"" ++ filter (/= '\n') str ++ "\"}"
@@ -55,24 +64,28 @@ findKey str = take (findKeySpacer str) $ str
 findData :: String -> String
 findData str = drop ((findKeySpacer str) + 1) $ str
 
-processEntry :: String -> String -> IO()
+processEntry :: String -> String -> IO String
 processEntry txt str = do
   let index = findKeySpacer str
   let key = findKey str
   let dat = findData str
 
-  checkKey key dat txt
+  if (keyIsValid key) then
+    writeToFile key dat txt
+  else
+    return "{ state: \"FAIL\" }"
 
-checkKey key dat txt = 
-  if | length key == 0 -> return ()
-     | otherwise -> writeToFile key dat txt
+keyIsValid key = 
+  if | length key == 0 -> False
+     | otherwise -> True
 
 
 writeToFile key dat txt = do
-        writeFile tempFile txt
-        buff <- readFile tempFile
-        writeFile logFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
-        appendFile logFile $ key ++ ":" ++ dat
+  writeFile tempFile txt
+  buff <- readFile tempFile
+  writeFile logFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+  appendFile logFile $ key ++ ":" ++ dat
+  return "{ state: \"OK\" }";
 
 seekData :: [String] -> String -> [String] -> [String]
 seekData [] key result = result
