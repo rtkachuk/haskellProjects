@@ -11,7 +11,7 @@ import Control.Monad
 import Parsers
 
 logFile = "/home/fabler/log.txt"
-tempFile = "/home/fabler/temp.txt"
+tempFile = "/tmp/dataTemp.txt"
 
 main :: IO ()
 main = withSocketsDo $ do
