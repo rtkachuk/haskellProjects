@@ -28,10 +28,11 @@ workWithSocket h = do
   dataFromFile <- readFile logFile
 
   if | "GET " `isInfixOf` message -> do
-          hPutStr h $ unlines $ seekData (lines dataFromFile) (drop 4 message) []
+          let result =  unlines $ seekData (lines dataFromFile) (drop 4 message) []
+          hPutStrLn h $ returnJson $ findData $ result
           hFlush h
-     | "PUT " `isInfixOf` message  -> writeToFile dataFromFile $ (drop 4 message) ++ "\n"
-     | otherwise -> hPutStr h "?command" >> hFlush h
+     | "PUT " `isInfixOf` message  -> processEntry dataFromFile $ (drop 4 message) ++ "\n"
+     | otherwise -> hPutStrLn h "?command" >> hFlush h
 
   check <- hIsEOF h
 
@@ -40,21 +41,38 @@ workWithSocket h = do
   else
     workWithSocket h
 
-writeToFile :: String -> String -> IO()
-writeToFile txt str = do
-  let index = case findIndex (==':') str of
-                Just a -> a
-                otherwise -> 0
-  let key = take index str
-  let dat = drop (index+1) str
+returnJson :: String -> String
+returnJson str = "{ data: \"" ++ filter (/= '\n') str ++ "\"}"
 
-  processFile key dat txt
+findKeySpacer :: String -> Int
+findKeySpacer str = case findIndex (==':') str of
+                      Just a -> a
+                      otherwise -> 0
 
-processFile key dat txt = do
-  writeFile tempFile txt
-  buff <- readFile tempFile
-  writeFile logFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
-  appendFile logFile $ key ++ ":" ++ dat
+findKey :: String -> String
+findKey str = take (findKeySpacer str) $ str
+
+findData :: String -> String
+findData str = drop ((findKeySpacer str) + 1) $ str
+
+processEntry :: String -> String -> IO()
+processEntry txt str = do
+  let index = findKeySpacer str
+  let key = findKey str
+  let dat = findData str
+
+  checkKey key dat txt
+
+checkKey key dat txt = 
+  if | length key == 0 -> return ()
+     | otherwise -> writeToFile key dat txt
+
+
+writeToFile key dat txt = do
+        writeFile tempFile txt
+        buff <- readFile tempFile
+        writeFile logFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+        appendFile logFile $ key ++ ":" ++ dat
 
 seekData :: [String] -> String -> [String] -> [String]
 seekData [] key result = result
