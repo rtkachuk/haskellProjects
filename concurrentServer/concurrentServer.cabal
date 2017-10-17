@@ -18,7 +18,7 @@ cabal-version:       >=1.10
 executable concurrentServer
   ghc-options:         -O -threaded
   main-is:             Main.hs
-  -- other-modules:       
+  other-modules:       Parsers
   -- other-extensions:    
   build-depends:       base >=4.9 && <4.10, network, unix, bytestring, string, MissingH
   hs-source-dirs:      src
