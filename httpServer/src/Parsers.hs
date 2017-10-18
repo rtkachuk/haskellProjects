@@ -9,10 +9,6 @@ keyIsValid key =
   if | length key == 0 -> False
      | otherwise -> True
 
-returnJson :: String -> String
-returnJson "" = "{\n\t\"action\":\"READ\",\n\t\"state\":\"FAIL\",\n\t\"data\":\"<no data>\"\n}"
-returnJson str = "{\n\t\"action\":\"READ\",\n\t\"state\":\"OK\",\n\t\"data\":\"" ++ init str ++ "\"\n}"
-
 findKeySpacer :: String -> Int
 findKeySpacer str = case findIndex (==':') str of
                       Just a -> a
