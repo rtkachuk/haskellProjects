@@ -21,7 +21,9 @@ tempFile = "/tmp/HaskellHttpServerTempData.txt"
 
 main :: IO ()
 main = serverWith defaultConfig { srvLog = stdLogger, srvPort=8888 } $ \_ url request -> do
+
   dataFromFile <- readFile dbFile
+  
   let req = decodeString $ rqBody request
       ur = url_path url
   case rqMethod request of
@@ -29,7 +31,9 @@ main = serverWith defaultConfig { srvLog = stdLogger, srvPort=8888 } $ \_ url re
     GET -> readRequest ur dataFromFile
 
     POST -> processPost ur req dataFromFile
-      
+    
+    DELETE -> processDelete ur dataFromFile
+
     _ -> return $ prepareHtml BadRequest $ toHtml "Not implemented"
 
 readRequest url dataFromFile = do
@@ -71,6 +75,13 @@ prepareJSON s v = insertHeader HdrContentType "application/json" $ sendText s $ 
 processPost ur req dataFromFile = do
   if | length req == 0 -> readRequest ur dataFromFile
      | otherwise -> writeRequest ur req dataFromFile
+
+processDelete ur dataFromFile = do
+  writeFile tempFile dataFromFile
+  buff <- readFile tempFile
+  writeFile dbFile $ unlines $ filter (\str -> (ur ++ ":") `isInfixOf` str == False) $ lines buff
+  ans <- sendJSON "REMOVED"
+  return $ ans
 
 tryWrite key dat txt = do
   if (keyIsValid key) then
