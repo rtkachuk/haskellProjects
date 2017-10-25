@@ -1,4 +1,4 @@
- {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Main where
 
@@ -7,15 +7,12 @@ import Network.HTTP.Server.Logger
 import Network.HTTP.Server.HtmlForm as Form
 import Network.URL as URL
 import Codec.Binary.UTF8.String
-import Control.Exception(try, SomeException)
 import Control.Concurrent
-import Control.Concurrent.Chan
 import Control.Monad (forever)
 import System.FilePath
 import System.IO
 import Text.XHtml
 import Text.JSON
-import Text.JSON.String(runGetJSON)
 import Data.List
 import Control.Exception (evaluate)
 
@@ -30,18 +27,19 @@ main :: IO ()
 main = do
   actionChannel <- newChan
   getChannel <- newChan
-  postReadChannel <- newChan
+  postChannel <- newChan
 
-  worker $ writerListener actionChannel getChannel postReadChannel
+  worker $ writerListener actionChannel getChannel postChannel
   serverWith defaultConfig { srvLog = stdLogger, srvPort=8888 } $ \_ url request -> do
 
     let req = decodeString $ rqBody request
         ur = url_path url
+        
     case rqMethod request of
 
       GET -> do getRequest ur actionChannel getChannel
 
-      POST -> processPost ur req actionChannel postReadChannel
+      POST -> processPost ur req actionChannel postChannel
     
       DELETE -> processDelete ur actionChannel
 
@@ -57,11 +55,11 @@ worker action = forkIO $ forever action
 -- Chanel, which will have acsess to file
 --
 
-writerListener actionChannel getChannel postReadChannel= do
+writerListener actionChannel getChannel postChannel= do
   dat <- readChan actionChannel
-  processChannelRecv dat getChannel postReadChannel
+  processChannelRecv dat getChannel postChannel
 
-processChannelRecv (mode, dat) getChannel postReadChannel =
+processChannelRecv (mode, dat) getChannel postChannel =
   case mode of
     CGet -> do
       dataFromFile <- getDataFromFile dbFile
@@ -70,7 +68,7 @@ processChannelRecv (mode, dat) getChannel postReadChannel =
     CPostRead -> do
       dataFromFile <- getDataFromFile dbFile
       let text = findData $ seekData (lines dataFromFile) $ dat
-      writeChan postReadChannel text
+      writeChan postChannel text
     CPostWrite -> do
       txt <- getDataFromFile dbFile
       let key = findKey dat
@@ -85,6 +83,11 @@ processChannelRecv (mode, dat) getChannel postReadChannel =
       writeDataToFile tempFile txt
       buff <- getDataFromFile tempFile
       writeDataToFile dbFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+
+--
+--  File working. Theese functions were reimplemented
+--  due to avoid file-locking.
+--
 
 getDataFromFile path = do
   file <- openFile path ReadMode
@@ -116,6 +119,10 @@ getRequest url actionChannel readChannel = do
 
   sendReadResult text
 
+--
+-- Read (POST) processing
+--
+
 postReadRequest url actionChannel readChannel = do
   writeChan actionChannel (CPostRead, url)
   text <- readChan readChannel
@@ -129,6 +136,10 @@ sendReadResult text =
      | otherwise -> do
         ans <- sendJSON text
         return ans
+
+--
+-- Generating JSON objects
+--
 
 generateJSONObject status text = do
   let dataObject = ("data", JSString $ toJSString $ text)
@@ -146,32 +157,15 @@ sendJSONNoData = do
 
 
 --
--- Write processing
+-- Write processing (POST only)
 --
+
+processPost ur req actionChannel postChannel = do
+  if | length req == 0 -> postReadRequest ur actionChannel postChannel
+     | otherwise -> writeRequest ur req actionChannel
 
 writeRequest ur req dataFromFile = do
   ans <- tryWrite ur req dataFromFile
-  return $ ans
-
-sendText s v = insertHeader HdrContentLength (show (length v)) $
-               insertHeader HdrContentEncoding "UTF-8" $
-               insertHeader HdrContentEncoding "text/plain" $
-               (respond s :: Response String) { rspBody = txt }
-    where txt = encodeString v
-
-prepareHtml :: StatusCode -> Html -> Response String
-prepareHtml s v = insertHeader HdrContentType "text/html" $ sendText s $ renderHtml v
-
-prepareJSON :: StatusCode -> JSValue -> Response String
-prepareJSON s v = insertHeader HdrContentType "application/json" $ sendText s $ showJSValue v ""
-
-processPost ur req actionChannel postReadChannel = do
-  if | length req == 0 -> postReadRequest ur actionChannel postReadChannel
-     | otherwise -> writeRequest ur req actionChannel
-
-processDelete ur actionChannel = do
-  writeChan actionChannel (CDelete, ur)
-  ans <- sendJSON "REMOVED"
   return $ ans
 
 tryWrite key dat actionChannel = do
@@ -182,3 +176,32 @@ tryWrite key dat actionChannel = do
   else do
     ans <- sendJSONNoData
     return $ ans
+
+--
+-- Process Delete request
+--
+
+processDelete ur actionChannel = do
+  writeChan actionChannel (CDelete, ur)
+  ans <- sendJSON "REMOVED"
+  return $ ans
+
+--
+-- Prepare "Not implemented" error page
+--
+
+prepareHtml :: StatusCode -> Html -> Response String
+prepareHtml s v = insertHeader HdrContentType "text/html" $ sendText s $ renderHtml v
+
+--
+-- Prepare JSON object
+--
+
+prepareJSON :: StatusCode -> JSValue -> Response String
+prepareJSON s v = insertHeader HdrContentType "application/json" $ sendText s $ showJSValue v ""
+
+sendText s v = insertHeader HdrContentLength (show (length v)) $
+               insertHeader HdrContentEncoding "UTF-8" $
+               insertHeader HdrContentEncoding "text/plain" $
+               (respond s :: Response String) { rspBody = txt }
+    where txt = encodeString v
