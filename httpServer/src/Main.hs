@@ -22,7 +22,7 @@ import Parsers
 db_FILE = "/home/fabler/db.txt"
 tempFILE = "/tmp/HaskellHttpServerTempData.txt"
 
-serverVERSION = "Server version 0.0.1"
+serverVERSION = "info:Server version 0.0.1"
 
 data ChannelMode = CGet | CPostRead | CPostWrite | CDelete
 
@@ -68,29 +68,37 @@ writerListener actionChannel getChannel postChannel= do
 
 processChannelRecv (mode, dat) getChannel postChannel =
   case mode of
-    CGet -> do
-      dataFromFile <- getDataFromFile db_FILE
-      let text = findData $ seekData (lines dataFromFile) $ dat
-      writeChan getChannel text
-    CPostRead -> do
-      dataFromFile <- getDataFromFile db_FILE
-      let text = findData $ seekData (lines dataFromFile) $ dat
-      writeChan postChannel text
-    CPostWrite -> do
-      txt <- getDataFromFile db_FILE
-      let key = findKey dat
-      let str = findData dat
-      writeDataToFile tempFILE txt
-      buff <- getDataFromFile tempFILE
-      writeDataToFile db_FILE $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
-      appendDataToFile db_FILE $ key ++ ":" ++ str ++ "\n"
-    CDelete -> do
-      txt <- getDataFromFile db_FILE
-      let key = dat
-      writeDataToFile tempFILE txt
-      buff <- getDataFromFile tempFILE
-      writeDataToFile db_FILE $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+    CGet -> channelReadMode CGet dat getChannel postChannel
+    CPostRead -> channelReadMode CPostRead dat getChannel postChannel
+    CPostWrite -> channelWriteMode CPostWrite dat
+    CDelete -> channelWriteMode CDelete dat
 
+channelReadMode mode dat getChannel postChannel = do
+  dataFromFile <- getDataFromFile db_FILE
+  let text = findData $ seekData (lines dataFromFile) $ dat
+  case mode of
+    CGet -> writeChan getChannel text
+    CPostRead -> writeChan postChannel text
+
+channelWriteMode mode dat = do
+  txt <- getDataFromFile db_FILE
+  let key = findKey dat
+  let text = findData dat
+
+  putStrLn $ key
+  putStrLn $ text
+  putStrLn $ dat
+
+  writeDataToFile tempFILE txt
+  buff <- getDataFromFile tempFILE
+  
+  case mode of
+    CPostWrite -> do
+      writeDataToFile db_FILE $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+      appendDataToFile db_FILE $ key ++ ":" ++ text ++ "\n"
+    otherwise ->
+      writeDataToFile db_FILE $ unlines $ filter (\str -> (dat ++ ":") `isInfixOf` str == False) $ lines buff
+  
 --
 --  File working. Theese functions were reimplemented
 --  due to avoid file-locking.
@@ -161,7 +169,6 @@ sendJSON text = do
 sendJSONNoData = do
   obj <- generateJSONObject "FAIL" "<no data>"
   return $ prepareJSON NotFound $ obj
-
 
 --
 -- Write processing (POST only)
