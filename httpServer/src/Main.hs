@@ -11,6 +11,7 @@ import Control.Concurrent
 import Control.Monad (forever)
 import System.FilePath
 import System.IO
+import System.Directory
 import Text.XHtml
 import Text.JSON
 import Data.List
@@ -18,8 +19,10 @@ import Control.Exception (evaluate)
 
 import Parsers
 
-dbFile = "/home/fabler/db.txt"
-tempFile = "/tmp/HaskellHttpServerTempData.txt"
+db_FILE = "/home/fabler/db.txt"
+tempFILE = "/tmp/HaskellHttpServerTempData.txt"
+
+serverVERSION = "Server version 0.0.1"
 
 data ChannelMode = CGet | CPostRead | CPostWrite | CDelete
 
@@ -28,6 +31,10 @@ main = do
   actionChannel <- newChan
   getChannel <- newChan
   postChannel <- newChan
+
+  exist <- doesFileExist db_FILE
+  if | exist -> putStrLn $ "File exist"
+     | otherwise -> writeFile db_FILE serverVERSION
 
   worker $ writerListener actionChannel getChannel postChannel
   serverWith defaultConfig { srvLog = stdLogger, srvPort=8888 } $ \_ url request -> do
@@ -62,27 +69,27 @@ writerListener actionChannel getChannel postChannel= do
 processChannelRecv (mode, dat) getChannel postChannel =
   case mode of
     CGet -> do
-      dataFromFile <- getDataFromFile dbFile
+      dataFromFile <- getDataFromFile db_FILE
       let text = findData $ seekData (lines dataFromFile) $ dat
       writeChan getChannel text
     CPostRead -> do
-      dataFromFile <- getDataFromFile dbFile
+      dataFromFile <- getDataFromFile db_FILE
       let text = findData $ seekData (lines dataFromFile) $ dat
       writeChan postChannel text
     CPostWrite -> do
-      txt <- getDataFromFile dbFile
+      txt <- getDataFromFile db_FILE
       let key = findKey dat
       let str = findData dat
-      writeDataToFile tempFile txt
-      buff <- getDataFromFile tempFile
-      writeDataToFile dbFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
-      appendDataToFile dbFile $ key ++ ":" ++ str ++ "\n"
+      writeDataToFile tempFILE txt
+      buff <- getDataFromFile tempFILE
+      writeDataToFile db_FILE $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+      appendDataToFile db_FILE $ key ++ ":" ++ str ++ "\n"
     CDelete -> do
-      txt <- getDataFromFile dbFile
+      txt <- getDataFromFile db_FILE
       let key = dat
-      writeDataToFile tempFile txt
-      buff <- getDataFromFile tempFile
-      writeDataToFile dbFile $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
+      writeDataToFile tempFILE txt
+      buff <- getDataFromFile tempFILE
+      writeDataToFile db_FILE $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
 
 --
 --  File working. Theese functions were reimplemented
