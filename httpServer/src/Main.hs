@@ -20,7 +20,6 @@ import Control.Exception (evaluate)
 import Parsers
 
 db_FILE = "/home/fabler/db.txt"
-tempFILE = "/tmp/HaskellHttpServerTempData.txt"
 
 serverVERSION = "info:Server version 0.0.1"
 
@@ -39,16 +38,14 @@ main = do
   worker $ writerListener actionChannel getChannel postChannel
   serverWith defaultConfig { srvLog = stdLogger, srvPort=8888 } $ \_ url request -> do
 
-    let req = decodeString $ rqBody request
-        ur = url_path url
+    let requestString = decodeString $ rqBody request
+        urlString = url_path url
         
     case rqMethod request of
 
-      GET -> do getRequest ur actionChannel getChannel
-
-      POST -> processPost ur req actionChannel postChannel
-    
-      DELETE -> processDelete ur actionChannel
+      GET -> do getRequest urlString actionChannel getChannel
+      POST -> processPost urlString requestString actionChannel postChannel
+      DELETE -> processDelete urlString actionChannel
 
       _ -> return $ prepareHtml BadRequest $ toHtml "Not implemented"
 
@@ -81,23 +78,16 @@ channelReadMode mode dat getChannel postChannel = do
     CPostRead -> writeChan postChannel text
 
 channelWriteMode mode dat = do
-  txt <- getDataFromFile db_FILE
+  buff <- getDataFromFile db_FILE
   let key = findKey dat
   let text = findData dat
 
-  putStrLn $ key
-  putStrLn $ text
-  putStrLn $ dat
-
-  writeDataToFile tempFILE txt
-  buff <- getDataFromFile tempFILE
-  
   case mode of
     CPostWrite -> do
-      writeDataToFile db_FILE $ unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff
-      appendDataToFile db_FILE $ key ++ ":" ++ text ++ "\n"
+      writeDataToFile db_FILE ( unlines $ filter (\str -> (key ++ ":") `isInfixOf` str == False) $ lines buff ) WriteMode
+      writeDataToFile db_FILE ( key ++ ":" ++ text ++ "\n" ) AppendMode
     otherwise ->
-      writeDataToFile db_FILE $ unlines $ filter (\str -> (dat ++ ":") `isInfixOf` str == False) $ lines buff
+      writeDataToFile db_FILE ( unlines $ filter (\str -> (dat ++ ":") `isInfixOf` str == False) $ lines buff ) WriteMode
   
 --
 --  File working. Theese functions were reimplemented
@@ -111,14 +101,8 @@ getDataFromFile path = do
   hClose file
   return text
 
-writeDataToFile path dat = do
-  file <- openFile path WriteMode
-  hPutStr file dat
-  hFlush file
-  hClose file
-
-appendDataToFile path dat = do
-  file <- openFile path AppendMode
+writeDataToFile path dat mode = do
+  file <- openFile path mode
   hPutStr file dat
   hFlush file
   hClose file
@@ -174,9 +158,8 @@ sendJSONNoData = do
 -- Write processing (POST only)
 --
 
-processPost ur req actionChannel postChannel = do
-  if | length req == 0 -> postReadRequest ur actionChannel postChannel
-     | otherwise -> writeRequest ur req actionChannel
+processPost ur "" actionChannel postChannel = postReadRequest ur actionChannel postChannel
+processPost ur req actionChannel postChannel =  writeRequest ur req actionChannel
 
 writeRequest ur req dataFromFile = do
   ans <- tryWrite ur req dataFromFile
