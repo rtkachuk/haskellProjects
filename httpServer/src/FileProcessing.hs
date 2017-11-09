@@ -7,7 +7,7 @@ import Control.Exception (evaluate)
 databaseFile = "/home/fabler/db.txt"
 serverVersion = "info:Server version 0.1.1"
 
-checkDatabaseFile = do
+checkDatabaseFileToBeExist = do
   doesFileExist databaseFile >>= createDatabaseFile
 
 createDatabaseFile True =

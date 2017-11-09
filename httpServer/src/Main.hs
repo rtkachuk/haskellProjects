@@ -19,7 +19,7 @@ main = do
 
   lock <- Lock.new
 
-  checkDatabaseFile       
+  checkDatabaseFileToBeExist
 
   serverWith defaultConfig { srvLog = stdLogger, srvPort=8888 } $ \_ url request ->
     with lock $ processRequest url request
