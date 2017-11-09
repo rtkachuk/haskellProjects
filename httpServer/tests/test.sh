@@ -14,7 +14,7 @@ do
 	fi
 
 	if [[ $1 == *"g"* ]]; then
-		curl -X GET http://127.0.0.1:8888/key$1
+		curl -X GET http://127.0.0.1:8888/key$i
 	fi
 
 	if [[ $1 == *"d"* ]]; then
