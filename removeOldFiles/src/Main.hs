@@ -38,9 +38,7 @@ checkArgs args
   | length args < 2 = putStrLn ("Usage: ./program path amount") >> exitFailure
   | otherwise = putStrLn $ "Scanning in " ++ args !! 0
 
-checkFiles [] = do
-  putStrLn $ "No files left"
-  exitSuccess
+checkFiles [] = putStrLn ("No files left") >> exitSuccess
 checkFiles files = putStr $ ""
 
 removeFiles path filesToRemove amount = do
