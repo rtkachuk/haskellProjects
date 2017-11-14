@@ -21,14 +21,18 @@ main = do
 processEntries :: String -> Int -> IO()
 processEntries path 0 = putStrLn $ "Done"
 processEntries path amount = do
-  rawfiles <- listDirectory $ path
-  let files = map (\file -> path ++ file) rawfiles
-  checkFiles files
-  dates <- mapM (\file -> getTime file >>= return) files
+
+  fileNames <- listDirectory $ path
+  let files = map (\file -> path ++ file) fileNames
+  checkFilesExist files
+
+  dates <- mapM (\file -> getFileLastChanged file >>= return) files
+
   let oldestDate = minimum dates
       filesToRemove = map fst $ filter (\(name, date) -> date == oldestDate) $ zip files dates
       amountOfFilesToRemove = length $ filesToRemove
       removeFilesWithPath = removeFiles path
+
   if (amountOfFilesToRemove < amount) then
     removeFilesWithPath filesToRemove $ amount - amountOfFilesToRemove
   else
@@ -38,15 +42,15 @@ checkArgs args
   | length args < 2 = putStrLn ("Usage: ./program path amount") >> exitFailure
   | otherwise = putStrLn $ "Scanning in " ++ args !! 0
 
-checkFiles [] = putStrLn ("No files left") >> exitSuccess
-checkFiles files = putStr $ ""
+checkFilesExist [] = putStrLn ("No files left") >> exitSuccess
+checkFilesExist files = putStr $ ""
 
 removeFiles path filesToRemove amount = do
     mapM_ (\file -> putStrLn $ "Removed " ++ file) filesToRemove
     mapM_ removeFile filesToRemove
     processEntries path amount
 
-getTime currentFile = do
+getFileLastChanged currentFile = do
   status <- getFileStatus currentFile
-  let atime = modificationTime status
-  return atime
+  let changedTime = modificationTime status
+  return changedTime
