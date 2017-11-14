@@ -23,63 +23,28 @@ processEntries path amount = do
   rawfiles <- listDirectory $ path
   let files = map (\file -> path ++ file) rawfiles
   checkFiles files
-  filesAndDates <- mapM (\file -> file >>= return) $ generateFileAndDatesArray files []
+  filesAndDates <- mapM (\file -> file >>= return) $ map (createNameTimeTuple) files
   let (name,date) = head $ filesAndDates
-      oldestDate = findOldest filesAndDates date
-      filesToRemove = getFilesToRemove filesAndDates [] oldestDate
+      oldestDate = minimum $ map snd filesAndDates
+      filesToRemove = map (\(name, date) -> name) $ filter (\(name, date) -> date == oldestDate) filesAndDates
       amountOfFilesToRemove = length $ filesToRemove
-  if amountOfFilesToRemove < amount then
-    removeAll path filesToRemove $ amount - amountOfFilesToRemove
+      removeFilesWithPath = removeFiles path
+  if (amountOfFilesToRemove < amount) then
+    removeFilesWithPath filesToRemove $ amount - amountOfFilesToRemove
   else
-    removeAll path (take amount filesToRemove) 0
+    removeFilesWithPath (take amount filesToRemove) 0
 
 checkFiles [] = do
   putStrLn $ "No files left"
   exitSuccess
-checkFiles files = putStrLn $ show (length(files)) ++ " pending..."
+checkFiles files = putStrLn $ show (length(files)) ++ " left in directory"
 
-removeAll path filesToRemove amount = do
+removeFiles path filesToRemove amount = do
   mapM_ (\file -> putStrLn $ "Removed " ++ file) filesToRemove
   mapM_ removeFile filesToRemove
   processEntries path amount
 
-showFilesToBeRemoved :: [String] -> IO()
-showFilesToBeRemoved [] = putStr $ ""
-showFilesToBeRemoved files =
-  putStrLn $ "Removed " ++ (head files)
-
-getFilesToRemove :: [(String, CTypes.CTime)] -> [String] -> CTypes.CTime -> [String]
-getFilesToRemove [] files time = files
-getFilesToRemove filesToProcess filesToRemove time =
-  let (name, date) = head $ filesToProcess
-  in if date == time then do
-    getFilesToRemove (tail filesToProcess) (filesToRemove ++ [name]) time
-  else
-    getFilesToRemove (tail filesToProcess) filesToRemove time
-
-findOldest :: [(String, CTypes.CTime)] -> CTypes.CTime -> CTypes.CTime
-findOldest [] time = time
-findOldest filesWithDates time = do
-  let (name, date) = head $ filesWithDates
-  if date < time then
-    findOldest (tail filesWithDates) date
-  else
-    findOldest (tail filesWithDates) time
-
-showData :: [(String, CTypes.CTime)] -> IO()
-showData [] = putStr $ "\n"
-showData filesWithDates = do
-  let (name, date) = head $ filesWithDates
-  putStrLn $ name ++ (show date)
-  showData $ tail filesWithDates
-
-generateFileAndDatesArray :: [String] -> [IO (String, CTypes.CTime)] -> [IO (String, CTypes.CTime)]
-generateFileAndDatesArray [] filesAndDates = filesAndDates
-generateFileAndDatesArray files filesAndDates =
-  let fileAndDate = getTime $ head files
-  in generateFileAndDatesArray (tail files) $ fileAndDate : filesAndDates
-
-getTime currentFile = do
+createNameTimeTuple currentFile = do
   status <- getFileStatus currentFile
   let atime = modificationTime status
   return (currentFile, atime)
