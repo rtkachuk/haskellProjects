@@ -12,6 +12,7 @@ import System.Exit
 main :: IO ()
 main = do
   args <- getArgs
+  checkArgs args
   let path =   args !! 0
       amount = (read (args !! 1)):: Int
 
@@ -23,10 +24,9 @@ processEntries path amount = do
   rawfiles <- listDirectory $ path
   let files = map (\file -> path ++ file) rawfiles
   checkFiles files
-  filesAndDates <- mapM (\file -> file >>= return) $ map (createNameTimeTuple) files
-  let (name,date) = head $ filesAndDates
-      oldestDate = minimum $ map snd filesAndDates
-      filesToRemove = map (\(name, date) -> name) $ filter (\(name, date) -> date == oldestDate) filesAndDates
+  dates <- mapM (\file -> getTime file >>= return) files
+  let oldestDate = minimum dates
+      filesToRemove = map fst $ filter (\(name, date) -> date == oldestDate) $ zip files dates
       amountOfFilesToRemove = length $ filesToRemove
       removeFilesWithPath = removeFiles path
   if (amountOfFilesToRemove < amount) then
@@ -34,17 +34,21 @@ processEntries path amount = do
   else
     removeFilesWithPath (take amount filesToRemove) 0
 
+checkArgs args
+  | length args < 2 = putStrLn ("Usage: ./program path amount") >> exitFailure
+  | otherwise = putStrLn $ "Scanning in " ++ args !! 0
+
 checkFiles [] = do
   putStrLn $ "No files left"
   exitSuccess
-checkFiles files = putStrLn $ show (length(files)) ++ " left in directory"
+checkFiles files = putStr $ ""
 
 removeFiles path filesToRemove amount = do
-  mapM_ (\file -> putStrLn $ "Removed " ++ file) filesToRemove
-  mapM_ removeFile filesToRemove
-  processEntries path amount
+    mapM_ (\file -> putStrLn $ "Removed " ++ file) filesToRemove
+    mapM_ removeFile filesToRemove
+    processEntries path amount
 
-createNameTimeTuple currentFile = do
+getTime currentFile = do
   status <- getFileStatus currentFile
   let atime = modificationTime status
-  return (currentFile, atime)
+  return atime
